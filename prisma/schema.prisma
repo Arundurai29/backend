@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("student") // student or admin
+  createdAt DateTime @default(now())
+}
+
+model questionType {
+  id               Int          @id @default(autoincrement())
+  name             String
+  parentId         Int?
+  parent           questionType? @relation("questionTypeToquestionType", fields: [parentId], references: [id], map: "questionType_parentId_fkey")
+  other_questionType questionType[] @relation("questionTypeToquestionType")
+  question         question[]
+  createdAt        DateTime      @default(now())
+
+  @@index([parentId], map: "questionType_parentId_fkey")
+}
+
+model subject {
+  id          Int       @id @default(autoincrement())
+  name        String
+  chapters    chapter[] @relation("subjectChapters")
+  questions   question[] // Added the inverse relation to `question`
+  createdAt   DateTime   @default(now())
+
+  @@index([id], map: "Subject_id_fkey")
+}
+
+model chapter {
+  id          Int       @id @default(autoincrement())
+  name        String
+  subjectId   Int
+  questions   question[]
+  subject     subject   @relation("subjectChapters", fields: [subjectId], references: [id], map: "chapter_subjectId_fkey")
+  topics      topic[]   @relation("chapterTopics")
+  createdAt   DateTime  @default(now())
+
+  @@index([subjectId], map: "chapter_subjectId_fkey")
+}
+
+model topic {
+  id          Int       @id @default(autoincrement())
+  name        String
+  chapterId   Int
+  questions   question[]
+  chapter     chapter   @relation("chapterTopics", fields: [chapterId], references: [id], map: "topic_chapterId_fkey")
+  createdAt   DateTime  @default(now())
+
+  @@index([chapterId], map: "topic_chapterId_fkey")
+}
+
+model question {
+  id            Int      @id @default(autoincrement())
+  questionTypeId Int
+  subjectId     Int
+  chapterId     Int
+  topicId       Int
+  questionText  String
+  optionA       String
+  optionB       String
+  optionC       String
+  optionD       String
+  correctOption String
+  hint          String?
+  questionType  questionType @relation(fields: [questionTypeId], references: [id], map: "question_questionTypeId_fkey")
+  subject       subject      @relation(fields: [subjectId], references: [id], map: "question_subjectId_fkey")
+  chapter       chapter      @relation(fields: [chapterId], references: [id], map: "question_chapterId_fkey")
+  topic         topic        @relation(fields: [topicId], references: [id], map: "question_topicId_fkey")
+  test          test[]       @relation("test_questions")
+  createdAt     DateTime     @default(now())
+
+  @@index([questionTypeId], map: "Question_questionTypeId_fkey")
+  @@index([subjectId], map: "Question_subjectId_fkey")
+  @@index([chapterId], map: "Question_chapterId_fkey")
+  @@index([topicId], map: "Question_topicId_fkey")
+}
+
+model test {
+  id            Int      @id @default(autoincrement())
+  questionId    Int
+  correctAnswer Int
+  wrongAnswer   Int
+  unAnswered    Int
+  accuracy      Int
+  totalTime     String
+  overallScore  Int
+  question      question @relation("test_questions", fields: [questionId], references: [id], map: "test_questionId_fkey")
+  createdAt     DateTime @default(now())
+
+  @@index([questionId], map: "test_questionId_fkey")
+}
